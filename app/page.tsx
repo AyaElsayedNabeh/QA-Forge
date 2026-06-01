@@ -288,17 +288,17 @@ export default function Home() {
                 {suite.gaps.length === 0 ? (
                   <div className="text-center py-10 text-emerald-400"><p className="text-sm font-medium">✓ No gaps detected</p></div>
                 ) : suite.gaps.map((gap, i) => (
-                  <div key={i} className={cn('bg-white border border-slate-200 rounded-xl p-4 border-l-4', {
-                    'border-l-red-500': gap.severity === 'high',
-                    'border-l-amber-400': gap.severity === 'medium',
-                    'border-l-emerald-400': gap.severity === 'low',
-                  })}>
+                 <div key={i} className={`bg-white border border-slate-200 rounded-xl p-4 border-l-4 ${
+  gap.severity === 'high' ? 'border-l-red-500' :
+  gap.severity === 'medium' ? 'border-l-amber-400' :
+  'border-l-emerald-400'
+}`}>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', {
-                        'bg-red-100 text-red-700': gap.severity === 'high',
-                        'bg-amber-100 text-amber-700': gap.severity === 'medium',
-                        'bg-emerald-100 text-emerald-700': gap.severity === 'low',
-                      })}>{gap.severity}</span>
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+  gap.severity === 'high' ? 'bg-red-100 text-red-700' :
+  gap.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
+  'bg-emerald-100 text-emerald-700'
+}`}
                       <span className="text-sm font-semibold text-slate-700">{gap.title}</span>
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed">{gap.description}</p>
