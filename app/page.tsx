@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 export default function AppPage() {
   const router = useRouter()
   useEffect(() => {
-    router.replace('/app')
+    router.replace('/')
   }, [router])
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
