@@ -288,7 +288,7 @@ export default function Home() {
                 {suite.gaps.length === 0 ? (
                   <div className="text-center py-10 text-emerald-400"><p className="text-sm font-medium">✓ No gaps detected</p></div>
                 ) : suite.gaps.map((gap, i) => (
-                  <div key={i} className={`bg-white border border-slate-200 rounded-xl p-4 border-l-4 ${
+                 <div key={i} className={`bg-white border border-slate-200 rounded-xl p-4 border-l-4 ${
   gap.severity === 'high' ? 'border-l-red-500' :
   gap.severity === 'medium' ? 'border-l-amber-400' :
   'border-l-emerald-400'
@@ -298,7 +298,7 @@ export default function Home() {
   gap.severity === 'high' ? 'bg-red-100 text-red-700' :
   gap.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
   'bg-emerald-100 text-emerald-700'
-}`}
+}`}>{gap.severity.toUpperCase()}</span>
                       <span className="text-sm font-semibold text-slate-700">{gap.title}</span>
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed">{gap.description}</p>
