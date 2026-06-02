@@ -1,3 +1,8 @@
 'use client'
-import App from '../page'
-export default App
+import dynamic from 'next/dynamic'
+
+const Home = dynamic(() => import('../page'), { ssr: false })
+
+export default function AppPage() {
+  return <Home />
+}
