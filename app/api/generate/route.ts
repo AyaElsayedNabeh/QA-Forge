@@ -93,8 +93,8 @@ Generate 8-12 test cases (mix of type "positive", "negative", "boundary"), 3-5 e
 
     const data = await response.json();
     const raw = data.choices?.[0]?.message?.content ?? '';
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-
+const jsonMatch = raw.match(/\{[\s\S]*\}/);
+const cleaned = jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g, '').trim();
     let parsed;
     try {
       parsed = JSON.parse(cleaned);

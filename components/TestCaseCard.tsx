@@ -39,8 +39,15 @@ export function TestCaseCard({ tc, suiteId }: TestCaseCardProps) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const typeColors = TYPE_COLORS[tc.type];
-  const statusColors = STATUS_COLORS[tc.status];
+  const typeColors = TYPE_COLORS[tc.type as keyof typeof TYPE_COLORS] ?? {
+  bg: 'bg-slate-100',
+  text: 'text-slate-600',
+  border: 'border-slate-200'
+};
+const statusColors = STATUS_COLORS[tc.status as keyof typeof STATUS_COLORS] ?? {
+  bg: 'bg-slate-100',
+  text: 'text-slate-600'
+};
 
   const addStep = () => update({ steps: [...tc.steps, ''] });
   const removeStep = (i: number) => update({ steps: tc.steps.filter((_, idx) => idx !== i) });
