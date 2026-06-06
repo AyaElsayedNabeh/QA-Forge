@@ -1,5 +1,6 @@
 'use client';
 
+import { MultiAgent } from '@/components/MultiAgent';
 import { BotManager } from '@/components/BotManager';
 import { useEffect, useState } from 'react';
 import { useStore, useActiveSuite } from '@/store';
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'gaps',      label: 'Gaps' },
   { id: 'ac',        label: 'Acceptance Criteria' },
   { id: 'bot',       label: '🤖 QA Bot' },
+  { id: 'multiagent', label: '🤖 Multi-Agent' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
