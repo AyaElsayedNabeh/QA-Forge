@@ -3,6 +3,7 @@
 import { BugReportPanel } from '@/components/BugReport';
 import { MultiAgent } from '@/components/MultiAgent';
 import { BotManager } from '@/components/BotManager';
+import { Auth } from '@/components/Auth';
 import { useEffect, useState } from 'react';
 import { useStore, useActiveSuite } from '@/store';
 import { Sidebar } from '@/components/Sidebar';
@@ -10,6 +11,8 @@ import { RequirementsPanel } from '@/components/RequirementsPanel';
 import { TestCasesTab } from '@/components/TestCasesTab';
 import { useSaveStatus } from '@/hooks/useSaveStatus';
 import { useApiSync } from '@/hooks/useApiSync';
+import { useSupabaseSync } from '@/hooks/useSupabaseSync';
+import { supabase } from '@/lib/supabase';
 import { cn, formatDate, getRunStats } from '@/lib/utils';
 
 const TABS = [
@@ -19,7 +22,7 @@ const TABS = [
   { id: 'edge',      label: 'Edge Cases' },
   { id: 'gaps',      label: 'Gaps' },
   { id: 'ac',        label: 'Acceptance Criteria' },
-  { id: 'bugs', label: '🐛 Bug Reports' },
+  { id: 'bugs',      label: '🐛 Bug Reports' },
   { id: 'bot',       label: '🤖 QA Bot' },
   { id: 'multiagent', label: '🤖 Multi-Agent' },
 ] as const;
@@ -40,11 +43,32 @@ export default function Home() {
   const [runTester, setRunTester] = useState('');
   const [runEnv, setRunEnv] = useState('Staging');
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Enable optional API sync (set to true to also persist to data/suites.json)
   useApiSync(false);
+  useSupabaseSync();
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => { setMounted(true) }, []);
+
+  if (authLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <p className="text-slate-400 text-sm">Loading...</p>
+    </div>
+  );
+
+  if (!user) return <Auth />;
   if (!mounted) return null;
 
   const handleCreateRun = () => {
@@ -90,6 +114,9 @@ export default function Home() {
                   {saveStatus === 'saving' && '● Saving…'}
                   {saveStatus === 'idle' && '● Auto-save on'}
                 </span>
+                <span className="text-xs text-slate-400 hidden md:block">
+                  {user?.email}
+                </span>
                 <button
                   onClick={() => exportSuiteToJSON(suite.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-white text-slate-600 transition-colors"
@@ -98,6 +125,12 @@ export default function Home() {
                     <path d="M6.5 1.5v7M4 6l2.5 2.5L9 6M2.5 10.5h8" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   Export JSON
+                </button>
+                <button
+                  onClick={() => supabase.auth.signOut()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-white text-slate-600 transition-colors"
+                >
+                  Sign Out
                 </button>
               </div>
             </div>
@@ -294,17 +327,17 @@ export default function Home() {
                 {suite.gaps.length === 0 ? (
                   <div className="text-center py-10 text-emerald-400"><p className="text-sm font-medium">✓ No gaps detected</p></div>
                 ) : suite.gaps.map((gap, i) => (
-                 <div key={i} className={`bg-white border border-slate-200 rounded-xl p-4 border-l-4 ${
-  gap.severity === 'high' ? 'border-l-red-500' :
-  gap.severity === 'medium' ? 'border-l-amber-400' :
-  'border-l-emerald-400'
-}`}>
+                  <div key={i} className={`bg-white border border-slate-200 rounded-xl p-4 border-l-4 ${
+                    gap.severity === 'high' ? 'border-l-red-500' :
+                    gap.severity === 'medium' ? 'border-l-amber-400' :
+                    'border-l-emerald-400'
+                  }`}>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-  gap.severity === 'high' ? 'bg-red-100 text-red-700' :
-  gap.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
-  'bg-emerald-100 text-emerald-700'
-}`}>{gap.severity.toUpperCase()}</span>
+                        gap.severity === 'high' ? 'bg-red-100 text-red-700' :
+                        gap.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>{gap.severity.toUpperCase()}</span>
                       <span className="text-sm font-semibold text-slate-700">{gap.title}</span>
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed">{gap.description}</p>
@@ -336,6 +369,7 @@ export default function Home() {
                 ))}
               </div>
             )}
+
             {tab === 'bugs' && <BugReportPanel />}
             {tab === 'multiagent' && <MultiAgent />}
             {tab === 'bot' && <BotManager />}
