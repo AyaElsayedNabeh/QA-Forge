@@ -1,5 +1,6 @@
 'use client';
 
+import { BugReportPanel } from '@/components/BugReport';
 import { MultiAgent } from '@/components/MultiAgent';
 import { BotManager } from '@/components/BotManager';
 import { useEffect, useState } from 'react';
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'edge',      label: 'Edge Cases' },
   { id: 'gaps',      label: 'Gaps' },
   { id: 'ac',        label: 'Acceptance Criteria' },
+  { id: 'bugs', label: '🐛 Bug Reports' },
   { id: 'bot',       label: '🤖 QA Bot' },
   { id: 'multiagent', label: '🤖 Multi-Agent' },
 ] as const;
@@ -334,6 +336,7 @@ export default function Home() {
                 ))}
               </div>
             )}
+            {tab === 'bugs' && <BugReportPanel />}
             {tab === 'multiagent' && <MultiAgent />}
             {tab === 'bot' && <BotManager />}
 
