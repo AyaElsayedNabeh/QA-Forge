@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   AppState, TestSuite, TestCase, TestRun, RunResult,
-  TestCaseType, TestCaseStatus, RunResultStatus, GenerateResponse,
+  TestCaseStatus, GenerateResponse, ChatMessage,
 } from '@/types';
 import { BugReport } from '@/types/bug';
 
@@ -27,14 +27,18 @@ interface StoreActions {
   completeRun: (suiteId: string, runId: string) => void;
   deleteRun: (suiteId: string, runId: string) => void;
 
-  // Export
-// Export
-  exportSuiteToJSON: (suiteId: string) => void;
+  // Bugs
   addBug: (suiteId: string, bug: BugReport) => void;
   updateBug: (suiteId: string, bugId: string, data: Partial<BugReport>) => void;
   deleteBug: (suiteId: string, bugId: string) => void;
-}
 
+  // Chat
+  setChatMessages: (suiteId: string, messages: ChatMessage[]) => void;
+  clearChat: (suiteId: string) => void;
+
+  // Export
+  exportSuiteToJSON: (suiteId: string) => void;
+}
 
 type Store = AppState & StoreActions;
 
@@ -49,13 +53,13 @@ export const useStore = create<Store>()(
       createSuite: (name, description = '') => {
         const id = uuidv4();
         const suite: TestSuite = {
-  id, name, description,
-  requirements: '', userStories: '',
-  testCases: [], edgeCases: [], gaps: [],
-  acceptanceCriteria: [], runs: [], tags: [],
-  bugs: [],
-  createdAt: now(), updatedAt: now(),
-};
+          id, name, description,
+          requirements: '', userStories: '',
+          testCases: [], edgeCases: [], gaps: [],
+          acceptanceCriteria: [], runs: [], tags: [],
+          bugs: [], chatMessages: [],
+          createdAt: now(), updatedAt: now(),
+        };
         set(s => ({ suites: [...s.suites, suite], activeSuiteId: id }));
         return id;
       },
@@ -248,42 +252,67 @@ export const useStore = create<Store>()(
       },
 
       addBug: (suiteId, bug) => {
-  set(s => ({
-    suites: s.suites.map(suite =>
-      suite.id !== suiteId ? suite : {
-        ...suite,
-        bugs: [...(suite.bugs ?? []), bug],
-        updatedAt: now(),
-      }
-    ),
-  }));
-},
+        set(s => ({
+          suites: s.suites.map(suite =>
+            suite.id !== suiteId ? suite : {
+              ...suite,
+              bugs: [...(suite.bugs ?? []), bug],
+              updatedAt: now(),
+            }
+          ),
+        }));
+      },
 
-updateBug: (suiteId, bugId, data) => {
-  set(s => ({
-    suites: s.suites.map(suite =>
-      suite.id !== suiteId ? suite : {
-        ...suite,
-        bugs: (suite.bugs ?? []).map(b =>
-          b.id === bugId ? { ...b, ...data, updatedAt: new Date().toISOString() } : b
-        ),
-        updatedAt: now(),
-      }
-    ),
-  }));
-},
+      updateBug: (suiteId, bugId, data) => {
+        set(s => ({
+          suites: s.suites.map(suite =>
+            suite.id !== suiteId ? suite : {
+              ...suite,
+              bugs: (suite.bugs ?? []).map(b =>
+                b.id === bugId ? { ...b, ...data, updatedAt: new Date().toISOString() } : b
+              ),
+              updatedAt: now(),
+            }
+          ),
+        }));
+      },
 
-deleteBug: (suiteId, bugId) => {
-  set(s => ({
-    suites: s.suites.map(suite =>
-      suite.id !== suiteId ? suite : {
-        ...suite,
-        bugs: (suite.bugs ?? []).filter(b => b.id !== bugId),
-        updatedAt: now(),
-      }
-    ),
-  }));
-},
+      deleteBug: (suiteId, bugId) => {
+        set(s => ({
+          suites: s.suites.map(suite =>
+            suite.id !== suiteId ? suite : {
+              ...suite,
+              bugs: (suite.bugs ?? []).filter(b => b.id !== bugId),
+              updatedAt: now(),
+            }
+          ),
+        }));
+      },
+
+      setChatMessages: (suiteId, messages) => {
+        set(s => ({
+          suites: s.suites.map(suite =>
+            suite.id !== suiteId ? suite : {
+              ...suite,
+              chatMessages: messages,
+              updatedAt: now(),
+            }
+          ),
+        }));
+      },
+
+      clearChat: (suiteId) => {
+        set(s => ({
+          suites: s.suites.map(suite =>
+            suite.id !== suiteId ? suite : {
+              ...suite,
+              chatMessages: [],
+              updatedAt: now(),
+            }
+          ),
+        }));
+      },
+
       exportSuiteToJSON: (suiteId) => {
         const suite = get().suites.find(s => s.id === suiteId);
         if (!suite) return;

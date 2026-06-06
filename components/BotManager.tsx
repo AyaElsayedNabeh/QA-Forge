@@ -1,13 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useActiveSuite } from '@/store';
+import { useStore, useActiveSuite } from '@/store';
 import { cn } from '@/lib/utils';
-
-interface Message {
-  role: 'user' | 'bot';
-  content: string;
-}
+import type { ChatMessage } from '@/types';
 
 const SUGGESTIONS = [
   'Summarize this test suite',
@@ -18,12 +14,16 @@ const SUGGESTIONS = [
 
 export function BotManager() {
   const suite = useActiveSuite();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'bot',
-      content: `👋 Hi! I'm your QA Bot Manager. I can analyze **${suite?.name ?? 'your test suite'}** and help you understand risks, gaps, and test coverage. What would you like to know?`,
-    },
-  ]);
+  const setChatMessages = useStore(s => s.setChatMessages);
+  const clearChat = useStore(s => s.clearChat);
+
+  const savedMessages = suite?.chatMessages ?? [];
+  const defaultMessage: ChatMessage = {
+    role: 'bot',
+    content: `👋 Hi! I'm your QA Bot Manager. I can analyze **${suite?.name ?? 'your test suite'}** and help you understand risks, gaps, and test coverage. What would you like to know?`,
+  };
+
+  const messages: ChatMessage[] = savedMessages.length > 0 ? savedMessages : [defaultMessage];
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,29 +33,28 @@ export function BotManager() {
   }, [messages]);
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || loading) return;
+    if (!text.trim() || loading || !suite) return;
 
-    const userMsg: Message = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: text }];
+    setChatMessages(suite.id, newMessages);
     setInput('');
     setLoading(true);
 
     try {
-      const suite_data = suite;
-
       const res = await fetch('/api/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, suite: suite_data }),
+        body: JSON.stringify({ message: text, suite }),
       });
 
       const data = await res.json();
-      setMessages(prev => [...prev, {
+      const botReply: ChatMessage = {
         role: 'bot',
         content: data.reply ?? data.error ?? 'Something went wrong.',
-      }]);
+      };
+      setChatMessages(suite.id, [...newMessages, botReply]);
     } catch {
-      setMessages(prev => [...prev, {
+      setChatMessages(suite.id, [...newMessages, {
         role: 'bot',
         content: '❌ Failed to connect to the bot. Please try again.',
       }]);
@@ -66,7 +65,7 @@ export function BotManager() {
 
   return (
     <div className="flex flex-col h-[600px] bg-white border border-slate-200 rounded-xl overflow-hidden">
-      
+
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-indigo-50">
         <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-sm">
@@ -76,9 +75,17 @@ export function BotManager() {
           <p className="text-sm font-semibold text-slate-800">QA Bot Manager</p>
           <p className="text-xs text-slate-500">Analyzing: {suite?.name ?? 'No suite selected'}</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/>
-          <span className="text-xs text-emerald-600 font-medium">Online</span>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={() => suite && clearChat(suite.id)}
+            className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+          >
+            Clear chat
+          </button>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"/>
+            <span className="text-xs text-emerald-600 font-medium">Online</span>
+          </div>
         </div>
       </div>
 

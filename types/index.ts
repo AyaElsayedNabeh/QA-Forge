@@ -1,8 +1,15 @@
+import type { BugReport } from './bug';
+
 export type TestCaseType = 'positive' | 'negative' | 'boundary';
 export type TestCaseStatus = 'draft' | 'ready' | 'in-review' | 'approved';
 export type RunResultStatus = 'untested' | 'pass' | 'fail' | 'blocked' | 'skipped';
 export type RunStatus = 'draft' | 'inprogress' | 'completed';
 export type GapSeverity = 'high' | 'medium' | 'low';
+
+export interface ChatMessage {
+  role: 'user' | 'bot';
+  content: string;
+}
 
 export interface TestCase {
   id: string;
@@ -54,8 +61,6 @@ export interface AcceptanceCriteria {
   then: string;
 }
 
-import type { BugReport } from './bug';
-
 export interface TestSuite {
   id: string;
   name: string;
@@ -69,6 +74,7 @@ export interface TestSuite {
   runs: TestRun[];
   tags: string[];
   bugs: BugReport[];
+  chatMessages?: ChatMessage[];
   createdAt: number;
   updatedAt: number;
 }
