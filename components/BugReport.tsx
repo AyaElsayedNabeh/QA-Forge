@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useActiveSuite } from '@/store';
+import { useStore, useActiveSuite } from '@/store';
 import { cn } from '@/lib/utils';
 import type { BugReport, BugSeverity, BugStatus, BugPriority } from '@/types/bug';
 
@@ -36,7 +36,11 @@ const emptyBug = (): Omit<BugReport, 'id' | 'createdAt' | 'updatedAt'> => ({
 
 export function BugReportPanel() {
   const suite = useActiveSuite();
-  const [bugs, setBugs] = useState<BugReport[]>([])
+  const addBug = useStore(s => s.addBug);
+  const updateBug = useStore(s => s.updateBug);
+  const deleteBugFromStore = useStore(s => s.deleteBug);
+  const bugs = suite?.bugs ?? [];
+
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyBug())
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -53,10 +57,10 @@ export function BugReportPanel() {
   }
 
   const saveBug = () => {
-    if (!form.title.trim()) return
+    if (!form.title.trim() || !suite) return
     const now = new Date().toISOString()
     if (editingId) {
-      setBugs(bugs.map(b => b.id === editingId ? { ...form, id: editingId, createdAt: b.createdAt, updatedAt: now } : b))
+      updateBug(suite.id, editingId, { ...form, updatedAt: now })
       setEditingId(null)
     } else {
       const newBug: BugReport = {
@@ -65,14 +69,14 @@ export function BugReportPanel() {
         createdAt: now,
         updatedAt: now,
       }
-      setBugs([...bugs, newBug])
+      addBug(suite.id, newBug)
     }
     setForm(emptyBug())
     setShowForm(false)
   }
 
-  const deleteBug = (id: string) => {
-    if (confirm('Delete this bug report?')) setBugs(bugs.filter(b => b.id !== id))
+  const handleDeleteBug = (id: string) => {
+    if (confirm('Delete this bug report?') && suite) deleteBugFromStore(suite.id, id)
   }
 
   const editBug = (bug: BugReport) => {
@@ -104,7 +108,6 @@ export function BugReportPanel() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-800">🐛 Bug Reports</h2>
@@ -114,10 +117,7 @@ export function BugReportPanel() {
         </div>
         <div className="flex gap-2">
           {bugs.length > 0 && (
-            <button
-              onClick={exportBugs}
-              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors"
-            >
+            <button onClick={exportBugs} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
               Export CSV
             </button>
           )}
@@ -130,7 +130,6 @@ export function BugReportPanel() {
         </div>
       </div>
 
-      {/* Filter tabs */}
       {bugs.length > 0 && (
         <div className="flex gap-1">
           {(['all', 'open', 'in-progress', 'resolved', 'closed'] as const).map(f => (
@@ -148,167 +147,90 @@ export function BugReportPanel() {
         </div>
       )}
 
-      {/* Bug Form */}
       {showForm && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4">
           <h3 className="text-sm font-semibold text-slate-700">
             {editingId ? 'Edit Bug Report' : 'New Bug Report'}
           </h3>
-
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Title *</label>
-              <input
-                value={form.title}
-                onChange={e => updateForm({ title: e.target.value })}
-                placeholder="Brief description of the bug"
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              />
+              <input value={form.title} onChange={e => updateForm({ title: e.target.value })} placeholder="Brief description of the bug" className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"/>
             </div>
-
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</label>
-              <textarea
-                value={form.description}
-                onChange={e => updateForm({ description: e.target.value })}
-                rows={2}
-                placeholder="Detailed description"
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none"
-              />
+              <textarea value={form.description} onChange={e => updateForm({ description: e.target.value })} rows={2} placeholder="Detailed description" className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none"/>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Severity</label>
-              <select
-                value={form.severity}
-                onChange={e => updateForm({ severity: e.target.value as BugSeverity })}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              >
+              <select value={form.severity} onChange={e => updateForm({ severity: e.target.value as BugSeverity })} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400">
                 <option value="critical">🔴 Critical</option>
                 <option value="high">🟠 High</option>
                 <option value="medium">🟡 Medium</option>
                 <option value="low">🟢 Low</option>
               </select>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Priority</label>
-              <select
-                value={form.priority}
-                onChange={e => updateForm({ priority: e.target.value as BugPriority })}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              >
+              <select value={form.priority} onChange={e => updateForm({ priority: e.target.value as BugPriority })} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400">
                 <option value="urgent">🚨 Urgent</option>
                 <option value="high">⬆️ High</option>
                 <option value="medium">➡️ Medium</option>
                 <option value="low">⬇️ Low</option>
               </select>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Status</label>
-              <select
-                value={form.status}
-                onChange={e => updateForm({ status: e.target.value as BugStatus })}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              >
+              <select value={form.status} onChange={e => updateForm({ status: e.target.value as BugStatus })} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400">
                 <option value="open">Open</option>
                 <option value="in-progress">In Progress</option>
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
               </select>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Environment</label>
-              <select
-                value={form.environment}
-                onChange={e => updateForm({ environment: e.target.value })}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              >
+              <select value={form.environment} onChange={e => updateForm({ environment: e.target.value })} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400">
                 {['Staging', 'Production', 'Local', 'QA', 'Dev', 'UAT'].map(e => <option key={e}>{e}</option>)}
               </select>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Assignee</label>
-              <input
-                value={form.assignee}
-                onChange={e => updateForm({ assignee: e.target.value })}
-                placeholder="Who should fix this?"
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              />
+              <input value={form.assignee} onChange={e => updateForm({ assignee: e.target.value })} placeholder="Who should fix this?" className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"/>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Related Test Case</label>
-              <select
-                value={form.relatedTestCaseId}
-                onChange={e => updateForm({ relatedTestCaseId: e.target.value })}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-              >
+              <select value={form.relatedTestCaseId} onChange={e => updateForm({ relatedTestCaseId: e.target.value })} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400">
                 <option value="">None</option>
-                {suite?.testCases.map(tc => (
-                  <option key={tc.id} value={tc.id}>{tc.id} - {tc.title}</option>
-                ))}
+                {suite?.testCases.map(tc => <option key={tc.id} value={tc.id}>{tc.id} - {tc.title}</option>)}
               </select>
             </div>
-
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Steps to Reproduce</label>
               <div className="space-y-1.5">
                 {form.stepsToReproduce.map((step, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                    <input
-                      value={step}
-                      onChange={e => updateStep(i, e.target.value)}
-                      className="flex-1 px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400"
-                      placeholder={`Step ${i + 1}`}
-                    />
-                    {form.stepsToReproduce.length > 1 && (
-                      <button onClick={() => removeStep(i)} className="text-slate-300 hover:text-red-400 p-1">✕</button>
-                    )}
+                    <input value={step} onChange={e => updateStep(i, e.target.value)} className="flex-1 px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400" placeholder={`Step ${i + 1}`}/>
+                    {form.stepsToReproduce.length > 1 && <button onClick={() => removeStep(i)} className="text-slate-300 hover:text-red-400 p-1">✕</button>}
                   </div>
                 ))}
                 <button onClick={addStep} className="text-xs text-indigo-600 hover:underline mt-1">+ Add step</button>
               </div>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Expected Result</label>
-              <textarea
-                value={form.expectedResult}
-                onChange={e => updateForm({ expectedResult: e.target.value })}
-                rows={2}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none"
-                placeholder="What should happen"
-              />
+              <textarea value={form.expectedResult} onChange={e => updateForm({ expectedResult: e.target.value })} rows={2} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none" placeholder="What should happen"/>
             </div>
-
             <div>
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Actual Result</label>
-              <textarea
-                value={form.actualResult}
-                onChange={e => updateForm({ actualResult: e.target.value })}
-                rows={2}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none"
-                placeholder="What actually happened"
-              />
+              <textarea value={form.actualResult} onChange={e => updateForm({ actualResult: e.target.value })} rows={2} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none" placeholder="What actually happened"/>
             </div>
-
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Notes</label>
-              <textarea
-                value={form.notes}
-                onChange={e => updateForm({ notes: e.target.value })}
-                rows={2}
-                className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none"
-                placeholder="Additional notes"
-              />
+              <textarea value={form.notes} onChange={e => updateForm({ notes: e.target.value })} rows={2} className="w-full px-2.5 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-red-400 resize-none" placeholder="Additional notes"/>
             </div>
           </div>
-
           <div className="flex justify-end gap-2">
             <button onClick={() => { setShowForm(false); setEditingId(null) }} className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">Cancel</button>
             <button onClick={saveBug} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium">
@@ -318,7 +240,6 @@ export function BugReportPanel() {
         </div>
       )}
 
-      {/* Bug List */}
       {filteredBugs.length === 0 && !showForm ? (
         <div className="text-center py-10 text-slate-400">
           <p className="text-2xl mb-2">🐛</p>
@@ -342,12 +263,10 @@ export function BugReportPanel() {
                 {bug.assignee && <span className="text-xs text-indigo-600 shrink-0">{bug.assignee}</span>}
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => editBug(bug)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600">✏️</button>
-                  <button onClick={() => deleteBug(bug.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500">🗑️</button>
+                  <button onClick={() => handleDeleteBug(bug.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500">🗑️</button>
                 </div>
               </div>
-              {bug.description && (
-                <div className="px-4 pb-3 text-xs text-slate-500">{bug.description}</div>
-              )}
+              {bug.description && <div className="px-4 pb-3 text-xs text-slate-500">{bug.description}</div>}
             </div>
           ))}
         </div>

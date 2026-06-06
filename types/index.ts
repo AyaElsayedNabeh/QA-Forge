@@ -54,6 +54,8 @@ export interface AcceptanceCriteria {
   then: string;
 }
 
+import type { BugReport } from './bug';
+
 export interface TestSuite {
   id: string;
   name: string;
@@ -66,6 +68,7 @@ export interface TestSuite {
   acceptanceCriteria: AcceptanceCriteria[];
   runs: TestRun[];
   tags: string[];
+  bugs: BugReport[];
   createdAt: number;
   updatedAt: number;
 }

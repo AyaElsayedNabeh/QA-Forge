@@ -5,6 +5,7 @@ import type {
   AppState, TestSuite, TestCase, TestRun, RunResult,
   TestCaseType, TestCaseStatus, RunResultStatus, GenerateResponse,
 } from '@/types';
+import { BugReport } from '@/types/bug';
 
 interface StoreActions {
   // Suite
@@ -27,8 +28,13 @@ interface StoreActions {
   deleteRun: (suiteId: string, runId: string) => void;
 
   // Export
+// Export
   exportSuiteToJSON: (suiteId: string) => void;
+  addBug: (suiteId: string, bug: BugReport) => void;
+  updateBug: (suiteId: string, bugId: string, data: Partial<BugReport>) => void;
+  deleteBug: (suiteId: string, bugId: string) => void;
 }
+
 
 type Store = AppState & StoreActions;
 
@@ -43,12 +49,13 @@ export const useStore = create<Store>()(
       createSuite: (name, description = '') => {
         const id = uuidv4();
         const suite: TestSuite = {
-          id, name, description,
-          requirements: '', userStories: '',
-          testCases: [], edgeCases: [], gaps: [],
-          acceptanceCriteria: [], runs: [], tags: [],
-          createdAt: now(), updatedAt: now(),
-        };
+  id, name, description,
+  requirements: '', userStories: '',
+  testCases: [], edgeCases: [], gaps: [],
+  acceptanceCriteria: [], runs: [], tags: [],
+  bugs: [],
+  createdAt: now(), updatedAt: now(),
+};
         set(s => ({ suites: [...s.suites, suite], activeSuiteId: id }));
         return id;
       },
@@ -240,6 +247,43 @@ export const useStore = create<Store>()(
         }));
       },
 
+      addBug: (suiteId, bug) => {
+  set(s => ({
+    suites: s.suites.map(suite =>
+      suite.id !== suiteId ? suite : {
+        ...suite,
+        bugs: [...(suite.bugs ?? []), bug],
+        updatedAt: now(),
+      }
+    ),
+  }));
+},
+
+updateBug: (suiteId, bugId, data) => {
+  set(s => ({
+    suites: s.suites.map(suite =>
+      suite.id !== suiteId ? suite : {
+        ...suite,
+        bugs: (suite.bugs ?? []).map(b =>
+          b.id === bugId ? { ...b, ...data, updatedAt: new Date().toISOString() } : b
+        ),
+        updatedAt: now(),
+      }
+    ),
+  }));
+},
+
+deleteBug: (suiteId, bugId) => {
+  set(s => ({
+    suites: s.suites.map(suite =>
+      suite.id !== suiteId ? suite : {
+        ...suite,
+        bugs: (suite.bugs ?? []).filter(b => b.id !== bugId),
+        updatedAt: now(),
+      }
+    ),
+  }));
+},
       exportSuiteToJSON: (suiteId) => {
         const suite = get().suites.find(s => s.id === suiteId);
         if (!suite) return;
