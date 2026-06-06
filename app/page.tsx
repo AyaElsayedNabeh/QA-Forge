@@ -1,5 +1,6 @@
 'use client';
 
+import { BotManager } from '@/components/BotManager';
 import { useEffect, useState } from 'react';
 import { useStore, useActiveSuite } from '@/store';
 import { Sidebar } from '@/components/Sidebar';
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'edge',      label: 'Edge Cases' },
   { id: 'gaps',      label: 'Gaps' },
   { id: 'ac',        label: 'Acceptance Criteria' },
+  { id: 'bot',       label: '🤖 QA Bot' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -330,6 +332,7 @@ export default function Home() {
                 ))}
               </div>
             )}
+            {tab === 'bot' && <BotManager />}
 
           </div>
         )}
