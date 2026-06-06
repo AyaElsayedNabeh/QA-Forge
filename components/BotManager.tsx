@@ -41,26 +41,12 @@ export function BotManager() {
     setLoading(true);
 
     try {
-      const context = {
-        suiteName: suite?.name,
-        totalTestCases: suite?.testCases.length,
-        testCases: suite?.testCases.map(tc => ({
-          id: tc.id,
-          title: tc.title,
-          type: tc.type,
-          status: tc.status,
-          steps: tc.steps.length,
-        })),
-        gaps: suite?.gaps ?? [],
-        edgeCases: suite?.edgeCases ?? [],
-        acceptanceCriteria: suite?.acceptanceCriteria ?? [],
-        runs: suite?.runs.length ?? 0,
-      };
+      const suite_data = suite;
 
-      const res = await fetch('/api/bot', {
+      const res = await fetch('/api/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, context }),
+        body: JSON.stringify({ message: text, suite: suite_data }),
       });
 
       const data = await res.json();
