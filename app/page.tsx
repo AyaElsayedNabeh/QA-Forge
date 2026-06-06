@@ -1,5 +1,6 @@
 'use client';
 
+import { TeamManager } from '@/components/TeamManager';
 import { BugReportPanel } from '@/components/BugReport';
 import { MultiAgent } from '@/components/MultiAgent';
 import { BotManager } from '@/components/BotManager';
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'bugs',      label: '🐛 Bug Reports' },
   { id: 'bot',       label: '🤖 QA Bot' },
   { id: 'multiagent', label: '🤖 Multi-Agent' },
+  { id: 'team', label: '👥 Team' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -370,6 +372,7 @@ export default function Home() {
               </div>
             )}
 
+            {tab === 'team' && <TeamManager />}
             {tab === 'bugs' && <BugReportPanel />}
             {tab === 'multiagent' && <MultiAgent />}
             {tab === 'bot' && <BotManager />}
