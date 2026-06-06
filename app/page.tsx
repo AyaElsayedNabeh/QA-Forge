@@ -334,6 +334,7 @@ export default function Home() {
                 ))}
               </div>
             )}
+            {tab === 'multiagent' && <MultiAgent />}
             {tab === 'bot' && <BotManager />}
 
           </div>
