@@ -74,6 +74,7 @@ export interface TestSuite {
   id: string;
   name: string;
   description: string;
+    projectId?: string;
   requirements: string;
   userStories: string;
   testCases: TestCase[];
