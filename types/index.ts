@@ -61,6 +61,15 @@ export interface AcceptanceCriteria {
   then: string;
 }
 
+export interface Project {
+  id: string
+  name: string
+  description: string
+  ownerId: string
+  createdAt: number
+  updatedAt: number
+}
+
 export interface TestSuite {
   id: string;
   name: string;
@@ -80,6 +89,8 @@ export interface TestSuite {
 }
 
 export interface AppState {
+  projects: Project[];
+  activeProjectId: string | null;
   suites: TestSuite[];
   activeSuiteId: string | null;
 }

@@ -1,3 +1,4 @@
+import type { Project } from '@/types';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,8 +9,14 @@ import type {
 import { BugReport } from '@/types/bug';
 
 interface StoreActions {
+  // Projects
+  createProject: (name: string, description?: string) => string;
+  updateProject: (id: string, data: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  setActiveProject: (id: string | null) => void;
+
   // Suite
-  createSuite: (name: string, description?: string) => string;
+  createSuite: (name: string, description?: string, projectId?: string) => string;
   updateSuite: (id: string, data: Partial<Pick<TestSuite, 'name' | 'description' | 'requirements' | 'userStories' | 'tags'>>) => void;
   deleteSuite: (id: string) => void;
   setActiveSuite: (id: string | null) => void;
@@ -47,13 +54,48 @@ const now = () => Date.now();
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
+      projects: [],
+      activeProjectId: null,
       suites: [],
       activeSuiteId: null,
 
-      createSuite: (name, description = '') => {
+      createProject: (name, description = '') => {
+        const id = uuidv4();
+        const project: Project = {
+          id, name, description,
+          ownerId: '',
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        set(s => ({ projects: [...s.projects, project], activeProjectId: id }));
+        return id;
+      },
+
+      updateProject: (id, data) => {
+        set(s => ({
+          projects: s.projects.map(p =>
+            p.id === id ? { ...p, ...data, updatedAt: now() } : p
+          ),
+        }));
+      },
+
+      deleteProject: (id) => {
+        set(s => ({
+          projects: s.projects.filter(p => p.id !== id),
+          suites: s.suites.filter(suite => suite.projectId !== id),
+          activeProjectId: s.activeProjectId === id
+            ? (s.projects.find(p => p.id !== id)?.id ?? null)
+            : s.activeProjectId,
+        }));
+      },
+
+      setActiveProject: (id) => set({ activeProjectId: id }),
+
+      createSuite: (name, description = '', projectId) => {
         const id = uuidv4();
         const suite: TestSuite = {
           id, name, description,
+          projectId,
           requirements: '', userStories: '',
           testCases: [], edgeCases: [], gaps: [],
           acceptanceCriteria: [], runs: [], tags: [],
@@ -336,6 +378,12 @@ export const useActiveSuite = () => {
   const suites = useStore(s => s.suites);
   const activeSuiteId = useStore(s => s.activeSuiteId);
   return suites.find(s => s.id === activeSuiteId) ?? null;
+};
+
+export const useActiveProject = () => {
+  const projects = useStore(s => s.projects);
+  const activeProjectId = useStore(s => s.activeProjectId);
+  return projects.find(p => p.id === activeProjectId) ?? null;
 };
 
 export const useRunStats = (run: TestRun | undefined) => {
